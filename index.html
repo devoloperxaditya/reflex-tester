@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Color Matching Game</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: black;
+            color: white;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        
+        h1 {
+            color: #ff6b6b;
+            text-shadow: 0 0 10px rgba(255, 107, 107, 0.7);
+            margin-bottom: 30px;
+        }
+        
+        .game-container {
+            display: grid;
+            grid-template-columns: repeat(4, 100px);
+            grid-gap: 15px;
+            margin: 20px auto;
+        }
+        
+        .color-box {
+            width: 100px;
+            height: 100px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        
+        .color-box:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+        }
+        
+        .score {
+            font-size: 24px;
+            margin: 20px 0;
+            color: #74b9ff;
+        }
+        
+        .timer {
+            font-size: 24px;
+            margin: 10px 0;
+            color: #55efc4;
+        }
+        
+        button {
+            background: linear-gradient(45deg, #ff7675, #fdcb6e);
+            border: none;
+            padding: 12px 25px;
+            font-size: 18px;
+            border-radius: 30px;
+            cursor: pointer;
+            margin-top: 20px;
+            color: black;
+            font-weight: bold;
+            transition: transform 0.3s, box-shadow 0.3s;
+            box-shadow: 0 4px 15px rgba(253, 203, 110, 0.4);
+        }
+        
+        button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(253, 203, 110, 0.7);
+        }
+        
+        .message {
+            font-size: 24px;
+            margin: 20px 0;
+            height: 30px;
+            color: #a29bfe;
+        }
+    </style>
+</head>
+<body>
+    <h1>Color Match Game</h1>
+    <div class="timer">Time: <span id="time">60</span>s</div>
+    <div class="score">Score: <span id="score">0</span></div>
+    <div class="message" id="message"></div>
+    
+    <div class="game-container" id="game-container">
+        <!-- Color boxes will be generated here -->
+    </div>
+    
+    <button id="start-btn">Start Game</button>
+    
+    <script>
+        const colors = [
+            '#ff7675', '#74b9ff', '#55efc4', '#a29bfe',
+            '#ffeaa7', '#fd79a8', '#636e72', '#00cec9',
+            '#fab1a0', '#0984e3', '#b2bec3', '#6c5ce7'
+        ];
+        
+        let gameContainer = document.getElementById('game-container');
+        let scoreDisplay = document.getElementById('score');
+        let timeDisplay = document.getElementById('time');
+        let messageDisplay = document.getElementById('message');
+        let startBtn = document.getElementById('start-btn');
+        
+        let score = 0;
+        let timeLeft = 60;
+        let timer;
+        let firstCard = null;
+        let secondCard = null;
+        let canClick = false;
+        let matchedPairs = 0;
+        
+        function initGame() {
+            // Double the colors for pairs
+            let gameColors = [...colors, ...colors];
+            
+            // Shuffle the colors
+            gameColors = shuffleArray(gameColors);
+            
+            // Clear the game container
+            gameContainer.innerHTML = '';
+            
+            // Create color boxes
+            gameColors.forEach((color, index) => {
+                let colorBox = document.createElement('div');
+                colorBox.className = 'color-box';
+                colorBox.style.backgroundColor = color;
+                colorBox.dataset.color = color;
+                colorBox.dataset.index = index;
+                colorBox.addEventListener('click', handleCardClick);
+                gameContainer.appendChild(colorBox);
+            });
+        }
+        
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+        
+        function handleCardClick(e) {
+            if (!canClick) return;
+            if (e.target === firstCard) return;
+            
+            e.target.style.transform = 'scale(0.95)';
+            
+            if (!firstCard) {
+                firstCard = e.target;
+                firstCard.style.border = '3px solid white';
+                return;
+            }
+            
+            secondCard = e.target;
+            secondCard.style.border = '3px solid white';
+            canClick = false;
+            
+            if (firstCard.dataset.color === secondCard.dataset.color) {
+                // Match found
+                setTimeout(() => {
+                    firstCard.style.visibility = 'hidden';
+                    secondCard.style.visibility = 'hidden';
+                    firstCard.style.border = 'none';
+                    secondCard.style.border = 'none';
+                    firstCard = null;
+                    secondCard = null;
+                    canClick = true;
+                    
+                    score += 10;
+                    scoreDisplay.textContent = score;
+                    matchedPairs++;
+                    
+                    if (matchedPairs === colors.length) {
+                        endGame(true);
+                    }
+                }, 500);
+            } else {
+                // No match
+                setTimeout(() => {
+                    firstCard.style.border = 'none';
+                    secondCard.style.border = 'none';
+                    firstCard.style.transform = 'scale(1)';
+                    secondCard.style.transform = 'scale(1)';
+                    firstCard = null;
+                    secondCard = null;
+                    canClick = true;
+                }, 1000);
+            }
+        }
+        
+        function startGame() {
+            score = 0;
+            timeLeft = 60;
+            matchedPairs = 0;
+            scoreDisplay.textContent = score;
+            timeDisplay.textContent = timeLeft;
+            messageDisplay.textContent = '';
+            startBtn.textContent = 'Restart Game';
+            
+            initGame();
+            
+            // Start timer
+            clearInterval(timer);
+            timer = setInterval(() => {
+                timeLeft--;
+                timeDisplay.textContent = timeLeft;
+                
+                if (timeLeft <= 0) {
+                    endGame(false);
+                }
+            }, 1000);
+            
+            // Enable clicking after a short delay
+            setTimeout(() => {
+                canClick = true;
+            }, 500);
+        }
+        
+        function endGame(isWin) {
+            clearInterval(timer);
+            canClick = false;
+            
+            if (isWin) {
+                messageDisplay.textContent = `You Win! Final Score: ${score}`;
+                messageDisplay.style.color = '#55efc4';
+            } else {
+                messageDisplay.textContent = `Time's Up! Final Score: ${score}`;
+                messageDisplay.style.color = '#ff7675';
+            }
+        }
+        
+        startBtn.addEventListener('click', startGame);
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
